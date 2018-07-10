@@ -3926,6 +3926,10 @@ S2.define('select2/dropdown/search',[
     this.$searchContainer = $search;
     this.$search = $search.find('input');
 
+    if (this.options.get('dropdownSearchPlaceholder')) {
+      this.$search.attr('placeholder', this.options.get('dropdownSearchPlaceholder'));
+    }
+
     $rendered.prepend($search);
 
     return $rendered;
