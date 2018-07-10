@@ -19,10 +19,6 @@ define([
     this.$searchContainer = $search;
     this.$search = $search.find('input');
 
-    if (this.options.get('searchPlaceholder')) {
-      this.createPlaceholder(this.options.get('searchPlaceholder'));
-    }
-
     var $rendered = decorated.call(this);
 
     this._transferTabIndex();

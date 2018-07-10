@@ -1890,10 +1890,6 @@ S2.define('select2/selection/search',[
     this.$searchContainer = $search;
     this.$search = $search.find('input');
 
-    if (this.options.get('searchPlaceholder')) {
-      this.createPlaceholder(this.options.get('searchPlaceholder'));
-    }
-
     var $rendered = decorated.call(this);
 
     this._transferTabIndex();
@@ -3930,8 +3926,8 @@ S2.define('select2/dropdown/search',[
     this.$searchContainer = $search;
     this.$search = $search.find('input');
 
-    if (this.options.get('searchPlaceholder')) {
-      this.$search.attr('placeholder', this.options.get('searchPlaceholder'));
+    if (this.options.get('dropdownSearchPlaceholder')) {
+      this.$search.attr('placeholder', this.options.get('dropdownSearchPlaceholder'));
     }
 
     $rendered.prepend($search);
