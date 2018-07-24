@@ -146,10 +146,10 @@ define([
     var self = this,
       scrollFn;
 
-    scrollFn = function(el) {
-      var text = el.find('>div'),
-        ctWidth = el.width(),
-        textWidth = text.width(),
+    scrollFn = function(el, textClass) {
+      var text = el.find(textClass),
+        ctWidth = el.find('.base').width(),
+        textWidth = text.outerWidth(),
         direction = text.data('scrollDirection') || 'left',
         timeout = 20,
         leftPos;
@@ -174,7 +174,7 @@ define([
           left: leftPos
         });
         setTimeout(function(){
-          scrollFn(el);
+          scrollFn(el, textClass);
         }, timeout);
       }
     };
@@ -186,13 +186,14 @@ define([
         // setInterval is more logical here,
         // but at this small interval leads to unsync bugs
         setTimeout(function(){
-          scrollFn(el);
+          scrollFn(el, '.label');
+          scrollFn(el, '.label2');
         }, 20);
       })
       .on('mouseleave', function() {
         var el = $(this);
         el.removeClass('focused');
-        el.find('>div').data('scrollDirection', null).css({
+        el.find('.label').data('scrollDirection', null).css({
           left: 0
         });
       });
