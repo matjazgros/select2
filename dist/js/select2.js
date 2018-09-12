@@ -782,7 +782,10 @@ S2.define('select2/results',[
   Results.prototype.displayMessage = function (params) {
     var escapeMarkup = this.options.get('escapeMarkup');
 
-    this.clear();
+    if (!(params.args && params.args.skipClear)) {
+      this.clear();
+    }
+
     this.hideLoading();
 
     var $message = $(
@@ -800,7 +803,12 @@ S2.define('select2/results',[
 
     $message[0].className += ' select2-results__message';
 
-    this.$results.append($message);
+    if (!(params.args && params.args.onTop)) {
+      this.$results.append($message);
+    } else {
+      this.$results.prepend($message);
+    }
+
   };
 
   Results.prototype.hideMessages = function () {
@@ -1106,6 +1114,10 @@ S2.define('select2/results',[
       self.$results.attr('aria-expanded', 'false');
       self.$results.attr('aria-hidden', 'true');
       self.$results.removeAttr('aria-activedescendant');
+    });
+
+    container.on('results:hidemessages', function () {
+      self.hideMessages();
     });
 
     container.on('results:toggle', function () {
@@ -3847,18 +3859,54 @@ S2.define('select2/data/maximumSelectionLength',[
 
       this.current(function (currentData) {
         var count = currentData != null ? currentData.length : 0;
-        if (self.maximumSelectionLength > 0 &&
-          count >= self.maximumSelectionLength) {
+
+        decorated.call(self, params, callback);
+
+        if (self.maximumSelectionLength > 0 && count >= self.maximumSelectionLength) {
           self.trigger('results:message', {
             message: 'maximumSelected',
             args: {
-              maximum: self.maximumSelectionLength
+              maximum: self.maximumSelectionLength,
+              skipClear: true,
+              onTop: true
             }
           });
-          return;
         }
-        decorated.call(self, params, callback);
       });
+  };
+
+  MaximumSelectionLength.prototype.unselect =
+    function (decorated, params, callback) {
+      var self = this,
+        count;
+
+      this.current(function (currentData) {
+        count = currentData != null ? currentData.length : 0;
+      });
+
+      if (self.maximumSelectionLength > 0 && count == self.maximumSelectionLength) {
+        self.trigger('results:hidemessages');
+      }
+      decorated.call(self, params, callback);
+
+    };
+
+  MaximumSelectionLength.prototype.select =
+    function (decorated, params, callback) {
+      var self = this,
+        count;
+
+      this.current(function (currentData) {
+        count = currentData != null ? currentData.length : 0;
+      });
+
+      if (self.maximumSelectionLength > 0 && count >= self.maximumSelectionLength) {
+        self.$element.trigger('custom.onMaximumSelectionLengthExceeded');
+        return;
+      } else {
+        decorated.call(self, params, callback);
+      }
+
   };
 
   return MaximumSelectionLength;
