@@ -33,7 +33,10 @@ define([
   Results.prototype.displayMessage = function (params) {
     var escapeMarkup = this.options.get('escapeMarkup');
 
-    this.clear();
+    if (!(params.args && params.args.skipClear)) {
+      this.clear();
+    }
+
     this.hideLoading();
 
     var $message = $(
@@ -51,7 +54,12 @@ define([
 
     $message[0].className += ' select2-results__message';
 
-    this.$results.append($message);
+    if (!(params.args && params.args.onTop)) {
+      this.$results.append($message);
+    } else {
+      this.$results.prepend($message);
+    }
+
   };
 
   Results.prototype.hideMessages = function () {
@@ -357,6 +365,10 @@ define([
       self.$results.attr('aria-expanded', 'false');
       self.$results.attr('aria-hidden', 'true');
       self.$results.removeAttr('aria-activedescendant');
+    });
+
+    container.on('results:hidemessages', function () {
+      self.hideMessages();
     });
 
     container.on('results:toggle', function () {
