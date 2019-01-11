@@ -810,7 +810,10 @@ S2.define('select2/results',[
   Results.prototype.displayMessage = function (params) {
     var escapeMarkup = this.options.get('escapeMarkup');
 
-    this.clear();
+    if (!(params.args && params.args.skipClear)) {
+      this.clear();
+    }
+
     this.hideLoading();
 
     var $message = $(
@@ -828,7 +831,12 @@ S2.define('select2/results',[
 
     $message[0].className += ' select2-results__message';
 
-    this.$results.append($message);
+    if (!(params.args && params.args.onTop)) {
+      this.$results.append($message);
+    } else {
+      this.$results.prepend($message);
+    }
+
   };
 
   Results.prototype.hideMessages = function () {
@@ -909,6 +917,10 @@ S2.define('select2/results',[
 
         var item = $.data(this, 'data');
 
+        if (!item) {
+          return;
+        }
+
         // id needs to be converted to a string when comparing
         var id = '' + item.id;
 
@@ -921,6 +933,63 @@ S2.define('select2/results',[
       });
 
     });
+  };
+
+  Results.prototype.bindHorizontalScrolling = function () {
+    var self = this,
+      scrollFn;
+
+    scrollFn = function(el, textClass) {
+      var text = el.find(textClass),
+        ctWidth = el.find('.base').width(),
+        textWidth = text.outerWidth(),
+        direction = text.data('scrollDirection') || 'left',
+        timeout = 20,
+        leftPos;
+
+      if (textWidth > ctWidth && el.hasClass('focused')) {
+        leftPos = parseInt(text.css('left'), 10);
+
+        // go left til end fits, then go back right, repeat
+        if (leftPos + textWidth <= ctWidth && direction === 'left') {
+          direction = 'right';
+          timeout = 300;
+        }
+        if (leftPos === 0 && direction === 'right') {
+          direction = 'left';
+          timeout = 300;
+        }
+
+        leftPos = leftPos + (direction === 'right' ? 1 : -1);
+        text.data('scrollDirection', direction);
+
+        text.css({
+          left: leftPos
+        });
+        setTimeout(function(){
+          scrollFn(el, textClass);
+        }, timeout);
+      }
+    };
+
+    this.$results.find('.select2-results__option')
+      .on('mouseenter', function() {
+        var el = $(this);
+        el.addClass('focused');
+        // setInterval is more logical here,
+        // but at this small interval leads to unsync bugs
+        setTimeout(function(){
+          scrollFn(el, '.label');
+          scrollFn(el, '.label2');
+        }, 20);
+      })
+      .on('mouseleave', function() {
+        var el = $(this);
+        el.removeClass('focused');
+        el.find('.label').data('scrollDirection', null).css({
+          left: 0
+        });
+      });
   };
 
   Results.prototype.showLoading = function (params) {
@@ -1032,6 +1101,11 @@ S2.define('select2/results',[
         self.setClasses();
         self.highlightFirstItem();
       }
+
+      if (self.options.options.enableHorizontalScroll) {
+        self.bindHorizontalScrolling();
+      }
+
     });
 
     container.on('results:append', function (params) {
@@ -1079,6 +1153,10 @@ S2.define('select2/results',[
       self.$results.attr('aria-expanded', 'false');
       self.$results.attr('aria-hidden', 'true');
       self.$results.removeAttr('aria-activedescendant');
+    });
+
+    container.on('results:hidemessages', function () {
+      self.hideMessages();
     });
 
     container.on('results:toggle', function () {
@@ -1130,6 +1208,7 @@ S2.define('select2/results',[
 
       var $next = $options.eq(nextIndex);
 
+      $highlighted.trigger('mouseleave');
       $next.trigger('mouseenter');
 
       var currentOffset = self.$results.offset().top;
@@ -1159,6 +1238,7 @@ S2.define('select2/results',[
 
       var $next = $options.eq(nextIndex);
 
+      $highlighted.trigger('mouseleave');
       $next.trigger('mouseenter');
 
       var currentOffset = self.$results.offset().top +
@@ -1213,14 +1293,10 @@ S2.define('select2/results',[
       var data = $this.data('data');
 
       if ($this.attr('aria-selected') === 'true') {
-        if (self.options.get('multiple')) {
-          self.trigger('unselect', {
-            originalEvent: evt,
-            data: data
-          });
-        } else {
-          self.trigger('close', {});
-        }
+        self.trigger('unselect', {
+          originalEvent: evt,
+          data: data
+        });
 
         return;
       }
@@ -1354,7 +1430,9 @@ S2.define('select2/selection/base',[
       this._tabindex = this.$element.attr('tabindex');
     }
 
-    $selection.attr('title', this.$element.attr('title'));
+    if (this.options.get('setTitle')) {
+      $selection.attr('title', this.$element.attr('title'));
+    }
     $selection.attr('tabindex', this._tabindex);
 
     this.$selection = $selection;
@@ -1504,7 +1582,7 @@ S2.define('select2/selection/single',[
     $selection.html(
       '<span class="select2-selection__rendered"></span>' +
       '<span class="select2-selection__arrow" role="presentation">' +
-        '<b role="presentation"></b>' +
+        '<span class="icon icon-dropdown-selector"></span>' +
       '</span>'
     );
 
@@ -1578,7 +1656,9 @@ S2.define('select2/selection/single',[
     var formatted = this.display(selection, $rendered);
 
     $rendered.empty().append(formatted);
-    $rendered.prop('title', selection.title || selection.text);
+    if (this.options.get('setTitle')) {
+      $rendered.prop('title', selection.title || selection.text);
+    }
   };
 
   return SingleSelection;
@@ -1679,8 +1759,9 @@ S2.define('select2/selection/multiple',[
       var formatted = this.display(selection, $selection);
 
       $selection.append(formatted);
-      $selection.prop('title', selection.title || selection.text);
-
+      if (this.options.get('setTitle')) {
+        $selection.prop('title', selection.title || selection.text);
+      }
       $selection.data('data', selection);
 
       $selections.push($selection);
@@ -1932,6 +2013,11 @@ S2.define('select2/selection/search',[
           evt.preventDefault();
         }
       }
+    });
+
+    this.$selection.on('clear.search', function(){
+      self.$search.val('');
+      self.handleSearch();
     });
 
     // Try to detect the IE version should the `documentMode` property that
@@ -3097,6 +3183,15 @@ S2.define('select2/data/select',[
 
         self.$element.val(val);
         self.$element.trigger('change');
+
+        if (self.container && self.container.selection) {
+          // clear search input
+          if (self.container.selection.$search.val() !== '') {
+            self.container.selection.$search.val('');
+            self.container.trigger('close');
+          }
+          self.container.selection.$search.trigger('focus');
+        }
       });
     } else {
       var val = data.id;
@@ -3109,7 +3204,7 @@ S2.define('select2/data/select',[
   SelectAdapter.prototype.unselect = function (data) {
     var self = this;
 
-    if (!this.$element.prop('multiple')) {
+    if (!this.$element.prop('multiple') && this.$element.prop('required')) {
       return;
     }
 
@@ -3837,18 +3932,54 @@ S2.define('select2/data/maximumSelectionLength',[
 
       this.current(function (currentData) {
         var count = currentData != null ? currentData.length : 0;
-        if (self.maximumSelectionLength > 0 &&
-          count >= self.maximumSelectionLength) {
+
+        decorated.call(self, params, callback);
+
+        if (self.maximumSelectionLength > 0 && count >= self.maximumSelectionLength) {
           self.trigger('results:message', {
             message: 'maximumSelected',
             args: {
-              maximum: self.maximumSelectionLength
+              maximum: self.maximumSelectionLength,
+              skipClear: true,
+              onTop: true
             }
           });
-          return;
         }
-        decorated.call(self, params, callback);
       });
+  };
+
+  MaximumSelectionLength.prototype.unselect =
+    function (decorated, params, callback) {
+      var self = this,
+        count;
+
+      this.current(function (currentData) {
+        count = currentData != null ? currentData.length : 0;
+      });
+
+      if (self.maximumSelectionLength > 0 && count == self.maximumSelectionLength) {
+        self.trigger('results:hidemessages');
+      }
+      decorated.call(self, params, callback);
+
+    };
+
+  MaximumSelectionLength.prototype.select =
+    function (decorated, params, callback) {
+      var self = this,
+        count;
+
+      this.current(function (currentData) {
+        count = currentData != null ? currentData.length : 0;
+      });
+
+      if (self.maximumSelectionLength > 0 && count >= self.maximumSelectionLength) {
+        self.$element.trigger('custom.onMaximumSelectionLengthExceeded');
+        return;
+      } else {
+        decorated.call(self, params, callback);
+      }
+
   };
 
   return MaximumSelectionLength;
@@ -3916,6 +4047,10 @@ S2.define('select2/dropdown/search',[
 
     this.$searchContainer = $search;
     this.$search = $search.find('input');
+
+    if (this.options.get('dropdownSearchPlaceholder')) {
+      this.$search.attr('placeholder', this.options.get('dropdownSearchPlaceholder'));
+    }
 
     $rendered.prepend($search);
 
@@ -3997,6 +4132,159 @@ S2.define('select2/dropdown/search',[
   };
 
   return Search;
+});
+
+S2.define('select2/dropdown/tabs',[
+  'jquery',
+  '../utils'
+], function ($, Utils) {
+  function Tabs () { }
+
+  Tabs.prototype.render = function (decorated) {
+    var $rendered = decorated.call(this);
+
+    var resultTabs = '';
+    var allTabs = this.options.get('resultTabs');
+
+    $.each(allTabs, function(k, tabData){
+      var tab = '<a href="#" class="tab-link" data-id="' +
+            tabData.id + '"><span class="tab-name">' +
+            tabData.text + '</span><small class="tab-count">0</small></a>';
+      resultTabs += tab;
+    });
+
+    var $tabs = $(
+      '<span class="select2-tabs select2-tabs--dropdown tabs-count-' + allTabs.length + '">' +
+        resultTabs +
+      '</span>'
+    );
+
+    this.$tabsContainer = $tabs;
+
+    $rendered.find('.select2-results').before($tabs);
+
+    return $rendered;
+  };
+
+  Tabs.prototype.bind = function (decorated, container, $container) {
+    var self = this;
+
+    decorated.call(this, container, $container);
+
+    this.$tabsContainer.find('a').on('click', function(evt) {
+      var el = $(this);
+      var id = el.data('id');
+
+      self.selectTab(id);
+
+      evt.preventDefault();
+    });
+
+    container.on('open', function () {
+      var tabId = self.$tabsContainer.find('a:first-child').data('id');
+      try {
+        var val = self.$element.val();
+        $.each(self.options.options.data, function(k, d) {
+          if (d.id === val) {
+            tabId = d.tabId;
+            return false;
+          } else if (d.children && d.children.length) {
+            $.each(d.children, function(i, c) {
+              if (c.id === val) {
+                tabId = c.tabId;
+                return false;
+              }
+            });
+          }
+        });
+      } catch (e) {}
+      self.selectTab(tabId);
+    });
+
+    container.on('close', function () {
+      self.$tabsContainer.find('a').removeClass('tab-selected');
+      self.selectedTab = null;
+    });
+
+    // intercept results events so we can first filter out the items for the correct tab
+    container.on('tabresults:all', function(params) {
+      self.tabResults = params;
+      self.fillTab('results:all');
+      self.updateCount();
+    });
+
+    container.on('tabresults:append', function(params) {
+        self.tabResults.data = self.tabResults.data.concat(params.data);
+        self.fillTab('results:append');
+        self.updateCount();
+    });
+
+  };
+
+  Tabs.prototype.selectTab = function (_, tabId) {
+    this.selectedTab = tabId;
+    this.$tabsContainer.find('a').removeClass('tab-selected');
+    this.$tabsContainer.find('a[data-id="' + tabId + '"]').addClass('tab-selected');
+    this.fillTab('results:all');
+    this.$search.focus();
+  };
+
+  Tabs.prototype.fillTab = function (_, eventName) {
+
+    if (!this.tabResults) {
+      return;
+    }
+
+    var params = this.tabResults || {};
+    var tabId = this.selectedTab;
+    var results = [];
+    var counts = {};
+
+    // filter out the results for this specific tab
+    $.each(params.data.results || [], function(k, res){
+      if (res.tabId === tabId) {
+        results.push(res);
+      }
+    });
+
+    this.trigger(eventName, {
+      data: {
+        more: params.data.more,
+        results: results
+      },
+      query: params.query
+    });
+
+  };
+
+  Tabs.prototype.updateCount = function () {
+
+    if (!this.tabResults) {
+      return;
+    }
+
+    var counts = {};
+
+    // filter out the results for this specific tab
+    $.each(this.tabResults.data.results || [], function(k, res){
+      if (typeof counts[res.tabId] === 'undefined') {
+        counts[res.tabId] = 0;
+      }
+      if (!res.isSpecial) {
+        counts[res.tabId]++;
+      }
+    });
+
+    this.$tabsContainer.find('a').each(function(){
+      var el = $(this);
+      var id = el.data('id');
+
+      el.find('small').text(counts[id] || 0);
+    });
+
+  };
+
+  return Tabs;
 });
 
 S2.define('select2/dropdown/hidePlaceholder',[
@@ -4355,6 +4643,25 @@ S2.define('select2/dropdown/attachBody',[
   return AttachBody;
 });
 
+S2.define('select2/dropdown/attachContainer',[
+
+], function () {
+  function AttachContainer (decorated, $element, options) {
+    decorated.call(this, $element, options);
+  }
+
+  AttachContainer.prototype.position =
+    function (decorated, $dropdown, $container) {
+    var $dropdownContainer = $container.find('.dropdown-wrapper');
+    $dropdownContainer.append($dropdown);
+
+    $dropdown.addClass('select2-dropdown--below');
+    $container.addClass('select2-container--below');
+  };
+
+  return AttachContainer;
+});
+
 S2.define('select2/dropdown/minimumResultsForSearch',[
 
 ], function () {
@@ -4379,6 +4686,11 @@ S2.define('select2/dropdown/minimumResultsForSearch',[
 
     if (this.minimumResultsForSearch < 0) {
       this.minimumResultsForSearch = Infinity;
+    }
+
+    // always show search if tabbed
+    if (options.get('resultTabs')) {
+      this.minimumResultsForSearch = 0;
     }
 
     decorated.call(this, $element, options, dataAdapter);
@@ -4555,9 +4867,11 @@ S2.define('select2/defaults',[
 
   './dropdown',
   './dropdown/search',
+  './dropdown/tabs',
   './dropdown/hidePlaceholder',
   './dropdown/infiniteScroll',
   './dropdown/attachBody',
+  './dropdown/attachContainer',
   './dropdown/minimumResultsForSearch',
   './dropdown/selectOnClose',
   './dropdown/closeOnSelect',
@@ -4575,8 +4889,9 @@ S2.define('select2/defaults',[
              SelectData, ArrayData, AjaxData, Tags, Tokenizer,
              MinimumInputLength, MaximumInputLength, MaximumSelectionLength,
 
-             Dropdown, DropdownSearch, HidePlaceholder, InfiniteScroll,
-             AttachBody, MinimumResultsForSearch, SelectOnClose, CloseOnSelect,
+             Dropdown, DropdownSearch, DropdownTabs, HidePlaceholder, InfiniteScroll,
+             AttachBody, AttachContainer, MinimumResultsForSearch,
+             SelectOnClose, CloseOnSelect,
 
              EnglishTranslation) {
   function Defaults () {
@@ -4676,8 +4991,12 @@ S2.define('select2/defaults',[
         options.dropdownAdapter = Dropdown;
       } else {
         var SearchableDropdown = Utils.Decorate(Dropdown, DropdownSearch);
-
-        options.dropdownAdapter = SearchableDropdown;
+        if (options.resultTabs) {
+          var TabbedDropdown = Utils.Decorate(SearchableDropdown, DropdownTabs);
+          options.dropdownAdapter = TabbedDropdown;
+        } else {
+          options.dropdownAdapter = SearchableDropdown;
+        }
       }
 
       if (options.minimumResultsForSearch !== 0) {
@@ -4709,7 +5028,7 @@ S2.define('select2/defaults',[
 
       options.dropdownAdapter = Utils.Decorate(
         options.dropdownAdapter,
-        AttachBody
+        (options.attachToContainer ? AttachContainer : AttachBody)
       );
     }
 
@@ -4894,6 +5213,8 @@ S2.define('select2/defaults',[
       maximumSelectionLength: 0,
       minimumResultsForSearch: 0,
       selectOnClose: false,
+      setTitle: false,
+      attachToContainer: false,
       sorter: function (data) {
         return data;
       },
@@ -5348,20 +5669,36 @@ S2.define('select2/core',[
         self.trigger('open', {});
       }
 
-      this.dataAdapter.query(params, function (data) {
-        self.trigger('results:all', {
-          data: data,
-          query: params
+      if (this.dataAdapter) {
+        this.dataAdapter.query(params, function (data) {
+          if (self.options.get('resultTabs')) {
+            self.trigger('tabresults:all', {
+              data: data,
+              query: params
+            });
+          } else {
+            self.trigger('results:all', {
+              data: data,
+              query: params
+            });
+          }
         });
-      });
+      }
     });
 
     this.on('query:append', function (params) {
       this.dataAdapter.query(params, function (data) {
-        self.trigger('results:append', {
-          data: data,
-          query: params
-        });
+        if (self.options.get('resultTabs')) {
+          self.trigger('tabresults:append', {
+            data: data,
+            query: params
+          });
+        } else {
+          self.trigger('results:append', {
+            data: data,
+            query: params
+          });
+        }
       });
     });
 
@@ -6057,25 +6394,6 @@ S2.define('select2/compat/query',[
   };
 
   return Query;
-});
-
-S2.define('select2/dropdown/attachContainer',[
-
-], function () {
-  function AttachContainer (decorated, $element, options) {
-    decorated.call(this, $element, options);
-  }
-
-  AttachContainer.prototype.position =
-    function (decorated, $dropdown, $container) {
-    var $dropdownContainer = $container.find('.dropdown-wrapper');
-    $dropdownContainer.append($dropdown);
-
-    $dropdown.addClass('select2-dropdown--below');
-    $container.addClass('select2-container--below');
-  };
-
-  return AttachContainer;
 });
 
 S2.define('select2/dropdown/stopPropagation',[
