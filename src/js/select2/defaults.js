@@ -374,6 +374,7 @@ define([
       selectOnClose: false,
       setTitle: false,
       attachToContainer: false,
+      scrollAfterSelect: true,
       sorter: function (data) {
         return data;
       },
