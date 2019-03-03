@@ -1099,7 +1099,9 @@ S2.define('select2/results',[
 
       if (container.isOpen()) {
         self.setClasses();
-        self.highlightFirstItem();
+        if (self.options.get('scrollAfterSelect')) {
+          self.highlightFirstItem();
+        }
       }
 
       if (self.options.options.enableHorizontalScroll) {
@@ -1127,7 +1129,10 @@ S2.define('select2/results',[
       }
 
       self.setClasses();
-      self.highlightFirstItem();
+
+      if (self.options.get('scrollAfterSelect')) {
+        self.highlightFirstItem();
+      }
     });
 
     container.on('unselect', function () {
@@ -1136,7 +1141,10 @@ S2.define('select2/results',[
       }
 
       self.setClasses();
-      self.highlightFirstItem();
+
+      if (self.options.get('scrollAfterSelect')) {
+        self.highlightFirstItem();
+      }
     });
 
     container.on('open', function () {
@@ -5215,6 +5223,7 @@ S2.define('select2/defaults',[
       selectOnClose: false,
       setTitle: false,
       attachToContainer: false,
+      scrollAfterSelect: true,
       sorter: function (data) {
         return data;
       },
