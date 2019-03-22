@@ -249,6 +249,10 @@ define([
       attrs['aria-disabled'] = 'true';
     }
 
+    if (data.hidden) {
+      attrs['aria-hidden'] = 'true';
+    }
+
     if (data.id == null) {
       delete attrs['aria-selected'];
     }
