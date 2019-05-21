@@ -3153,7 +3153,22 @@ S2.define('select2/data/select',[
     var data = [];
     var self = this;
 
-    this.$element.find(':selected').each(function () {
+    // the original code searches for (':selected') which is suboptimal when lots of options are rendered
+    // instead, we take element val and select options by value attribute (uses original selectors which are fast)
+    var val = this.$element.val();
+    if (!this.$element.prop('multiple')) {
+      val = [val];
+    }
+
+    var collection = [];
+    $.each(val, function(k, v) {
+      var i = self.$element.find('option[value="' + v + '"]');
+      if (i.length) {
+        collection.push(i.get(0)); // to preserve order, we create a collection of nodes, not jquery elements
+      }
+    });
+
+    $(collection).each(function () {
       var $option = $(this);
 
       var option = self.item($option);
