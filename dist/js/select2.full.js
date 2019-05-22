@@ -3162,7 +3162,7 @@ S2.define('select2/data/select',[
 
     var collection = [];
     $.each(val, function(k, v) {
-      var i = self.$element.find('option[value="' + v.replace(/["\\]/g, '\\$&') + '"]');
+      var i = self.$element.find('option[value="' + (v || '').replace(/["\\]/g, '\\$&') + '"]');
       if (i.length) {
         collection.push(i.get(0)); // to preserve order, we create a collection of nodes, not jquery elements
       }
