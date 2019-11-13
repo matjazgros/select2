@@ -24,6 +24,7 @@ define([
     );
 
     this.$tabsContainer = $tabs;
+    this.isHidden = false;
 
     $rendered.find('.select2-results').before($tabs);
 
@@ -73,7 +74,7 @@ define([
     // intercept results events so we can first filter out the items for the correct tab
     container.on('tabresults:all', function(params) {
       self.tabResults = params;
-      self.fillTab('results:all');
+      self.fillTab('results:all', !!params.query.term);
       self.updateCount();
     });
 
@@ -93,7 +94,7 @@ define([
     this.$search.focus();
   };
 
-  Tabs.prototype.fillTab = function (_, eventName) {
+  Tabs.prototype.fillTab = function (_, eventName, isSearchActive) {
 
     if (!this.tabResults) {
       return;
@@ -106,10 +107,21 @@ define([
 
     // filter out the results for this specific tab
     $.each(params.data.results || [], function(k, res){
-      if (res.tabId === tabId) {
+      // if user is searching, tabs are hidden and results are displayed in one box
+      if (isSearchActive && !res.isSpecial) {
+        results.push(res);
+      } else if (!isSearchActive && res.tabId === tabId) {
         results.push(res);
       }
     });
+
+    if (isSearchActive && !this.isHidden) {
+      this.$tabsContainer.hide();
+      this.isHidden = true;
+    } else if (!isSearchActive && this.isHidden) {
+      this.$tabsContainer.show();
+      this.isHidden = false;
+    }
 
     this.trigger(eventName, {
       data: {
