@@ -24,7 +24,6 @@ define([
     );
 
     this.$tabsContainer = $tabs;
-    this.isHidden = false;
 
     $rendered.find('.select2-results').before($tabs);
 
@@ -115,13 +114,7 @@ define([
       }
     });
 
-    if (isSearchActive && !this.isHidden) {
-      this.$tabsContainer.hide();
-      this.isHidden = true;
-    } else if (!isSearchActive && this.isHidden) {
-      this.$tabsContainer.show();
-      this.isHidden = false;
-    }
+    this.$tabsContainer.toggle(!isSearchActive);
 
     this.trigger(eventName, {
       data: {

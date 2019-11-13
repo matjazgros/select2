@@ -4187,7 +4187,6 @@ S2.define('select2/dropdown/tabs',[
     );
 
     this.$tabsContainer = $tabs;
-    this.isHidden = false;
 
     $rendered.find('.select2-results').before($tabs);
 
@@ -4270,6 +4269,7 @@ S2.define('select2/dropdown/tabs',[
 
     // filter out the results for this specific tab
     $.each(params.data.results || [], function(k, res){
+      // if user is searching, tabs are hidden and results are displayed in one box
       if (isSearchActive && !res.isSpecial) {
         results.push(res);
       } else if (!isSearchActive && res.tabId === tabId) {
@@ -4277,13 +4277,7 @@ S2.define('select2/dropdown/tabs',[
       }
     });
 
-    if (isSearchActive && !this.isHidden) {
-      this.$tabsContainer.hide();
-      this.isHidden = true;
-    } else if (!isSearchActive && this.isHidden) {
-      this.$tabsContainer.show();
-      this.isHidden = false;
-    }
+    this.$tabsContainer.toggle(!isSearchActive);
 
     this.trigger(eventName, {
       data: {
