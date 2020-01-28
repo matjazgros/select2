@@ -7,16 +7,34 @@ define([
     decorated.call(this, $e, options);
   }
 
+  MaximumSelectionLength.prototype.bind =
+    function (decorated, container, $container) {
+      var self = this;
+
+      decorated.call(this, container, $container);
+
+      container.on('select', function () {
+        self._checkIfMaximumSelected();
+      });
+  };
+
   MaximumSelectionLength.prototype.query =
     function (decorated, params, callback) {
       var self = this;
 
+      decorated.call(self, params, callback);
+
+      this._checkIfMaximumSelected();
+  };
+
+  MaximumSelectionLength.prototype._checkIfMaximumSelected =
+    function (_, successCallback) {
+      var self = this;
+
       this.current(function (currentData) {
         var count = currentData != null ? currentData.length : 0;
-
-        decorated.call(self, params, callback);
-
-        if (self.maximumSelectionLength > 0 && count >= self.maximumSelectionLength) {
+        if (self.maximumSelectionLength > 0 &&
+          count >= self.maximumSelectionLength) {
           self.trigger('results:message', {
             message: 'maximumSelected',
             args: {
@@ -25,6 +43,10 @@ define([
               onTop: true
             }
           });
+          return;
+        }
+        if (successCallback) {
+          successCallback();
         }
       });
   };
@@ -61,7 +83,7 @@ define([
         decorated.call(self, params, callback);
       }
 
-  };
+    };
 
   return MaximumSelectionLength;
 });
