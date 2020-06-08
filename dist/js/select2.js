@@ -914,8 +914,9 @@ S2.define('select2/results',[
 
     if (data.results == null || data.results.length === 0) {
       if (this.$results.children().length === 0) {
+        var allOptionsCount = this.options.options.data.length;
         this.trigger('results:message', {
-          message: 'noResults'
+          message: allOptionsCount > 0 ? 'noResults' : 'emptyResults'
         });
       }
 
@@ -5071,6 +5072,9 @@ S2.define('select2/i18n/en',[],function () {
     },
     noResults: function () {
       return 'No results found';
+    },
+    emptyResults: function () {
+      return 'No options available';
     },
     searching: function () {
       return 'Searching…';
