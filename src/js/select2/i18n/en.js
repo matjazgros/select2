@@ -37,6 +37,9 @@ define(function () {
     noResults: function () {
       return 'No results found';
     },
+    emptyResults: function () {
+      return 'No options available';
+    },
     searching: function () {
       return 'Searching…';
     },
