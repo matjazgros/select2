@@ -121,6 +121,7 @@ define([
       });
     });
 
+    // Similar issue described in https://github.com/select2/select2/issues/4236
     $watchers.on(scrollEvent, function (ev) {
       var position = Utils.GetData(this, 'select2-scroll-position');
       if ($(this).find('.select2-container--open').length) {
