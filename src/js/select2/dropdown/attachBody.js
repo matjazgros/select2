@@ -123,7 +123,9 @@ define([
 
     $watchers.on(scrollEvent, function (ev) {
       var position = Utils.GetData(this, 'select2-scroll-position');
-      $(this).scrollTop(position.y);
+      if ($(this).find('.select2-container--open').length) {
+        $(this).scrollTop(position.y);
+      }
     });
 
     $(window).on(scrollEvent + ' ' + resizeEvent + ' ' + orientationEvent,
