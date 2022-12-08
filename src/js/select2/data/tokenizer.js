@@ -1,6 +1,7 @@
 define([
+  '../utils',
   'jquery'
-], function ($) {
+], function (Utils, $) {
   function Tokenizer (decorated, $element, options) {
     var tokenizer = options.get('tokenizer');
 
@@ -27,7 +28,7 @@ define([
 
       // Check if the data object already exists as a tag
       // Select it if it doesn't
-      var $existingOptions = self.$element.find('option').filter(function () {
+      var $existingOptions = Utils.GetAllOptionElements(self.$element).filter(function () {
         return $(this).val() === item.id;
       });
 
