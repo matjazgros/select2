@@ -836,6 +836,14 @@ S2.define('select2/utils',[
     element.removeAttribute('data-select2-id');
   };
 
+  Utils.GetAllOptionElements = function (element) {
+    // Get all options from given element (select).
+    // Optimize getting with querySelectorAll and create jQuery obj after,
+    // avoiding "Maximum call stack size exceeded" with alot of options.
+    var node = element.get(0);
+    return $(node ? node.querySelectorAll('option') : []);
+  };
+
   return Utils;
 });
 
@@ -3596,7 +3604,7 @@ S2.define('select2/data/array',[
   };
 
   ArrayAdapter.prototype.select = function (data) {
-    var $option = this.$element.find('option').filter(function (i, elm) {
+    var $option = Utils.GetAllOptionElements(this.$element).filter(function (i, elm) {
       return elm.value == data.id.toString();
     });
 
@@ -3612,7 +3620,7 @@ S2.define('select2/data/array',[
   ArrayAdapter.prototype.convertToOptions = function (data) {
     var self = this;
 
-    var $existing = this.$element.find('option');
+    var $existing = Utils.GetAllOptionElements(this.$element);
     var existingIds = $existing.map(function () {
       return self.item($(this)).id;
     }).get();
@@ -3899,8 +3907,9 @@ S2.define('select2/data/tags',[
 });
 
 S2.define('select2/data/tokenizer',[
+  '../utils',
   'jquery'
-], function ($) {
+], function (Utils, $) {
   function Tokenizer (decorated, $element, options) {
     var tokenizer = options.get('tokenizer');
 
@@ -3927,7 +3936,7 @@ S2.define('select2/data/tokenizer',[
 
       // Check if the data object already exists as a tag
       // Select it if it doesn't
-      var $existingOptions = self.$element.find('option').filter(function () {
+      var $existingOptions = Utils.GetAllOptionElements(self.$element).filter(function () {
         return $(this).val() === item.id;
       });
 
