@@ -18,7 +18,7 @@ define([
   };
 
   ArrayAdapter.prototype.select = function (data) {
-    var $option = this.$element.find('option').filter(function (i, elm) {
+    var $option = Utils.GetAllOptionElements(this.$element).filter(function (i, elm) {
       return elm.value == data.id.toString();
     });
 
@@ -34,7 +34,7 @@ define([
   ArrayAdapter.prototype.convertToOptions = function (data) {
     var self = this;
 
-    var $existing = this.$element.find('option');
+    var $existing = Utils.GetAllOptionElements(this.$element);
     var existingIds = $existing.map(function () {
       return self.item($(this)).id;
     }).get();

@@ -336,5 +336,13 @@ define([
     element.removeAttribute('data-select2-id');
   };
 
+  Utils.GetAllOptionElements = function (element) {
+    // Get all options from given element (select).
+    // Optimize getting with querySelectorAll and create jQuery obj after,
+    // avoiding "Maximum call stack size exceeded" with alot of options.
+    var node = element.get(0);
+    return $(node ? node.querySelectorAll('option') : []);
+  };
+
   return Utils;
 });
